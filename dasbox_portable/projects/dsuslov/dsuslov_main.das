@@ -14,6 +14,8 @@ struct Base
     score: float
     reqNps: int
     hardLvl: int
+    buttonDown: bool
+    buttonUp: bool
 
 
 struct Rocket
@@ -61,6 +63,13 @@ var
     explosions: array<Particle>
     npses: array<Nps>
     back_music: PcmSound <- create_sound("back.mp3")
+    bonus_music: PcmSound <- create_sound("bonus.mp3")
+    thorn_music: PcmSound <- create_sound("thorn.mp3")
+    gas_music: PcmSound <- create_sound("gas.mp3")
+    cloud_music: PcmSound <- create_sound("cloud.mp3")
+    bubbles_music: PcmSound <- create_sound("bubbles.mp3")
+    snd_handle: PlayingSoundHandle
+
 
 
 var weight_png: Image
@@ -74,7 +83,7 @@ let
     npsIds <- [{ auto[]
       "GAS"; "CLOUD"; "THORN"; "BONUS"
     }]
-    volume = 0.2
+    volume = 0.1
 
 
 var
@@ -277,6 +286,7 @@ def updatePos(var r: Rocket; b: Base; dt: float)
         base.hasFinished = true
         let rPos = b.zeroPos + r.pos
         eddExplosion(rPos, 40, BALL, b.hasFinished)
+        stop_sound(snd_handle)
 
 
 def rocketUpdate(var r: Rocket; b: Base; dt: float)
@@ -346,14 +356,22 @@ def npsUpdate(var npsList: array<Nps>; var r: Rocket; var b: Base; dt: float)
         let npsId: string = npsList[touchData.idx].id
         if npsId == "GAS"
             r.baseFuel = min(r.baseFuel + 10.0, r.maxBaseFuel)
+            play_sound(gas_music, 0.5)
+
         elif npsId == "BONUS"
             b.score += 10.0
+            play_sound(bonus_music, 0.2)
+
         elif npsId == "THORN"
             b.hasFinished = true
             let rPos = b.zeroPos + r.pos
             eddExplosion(rPos, 40, BALL, b.hasFinished)
+            play_sound(thorn_music, 0.5)
+            stop_sound(snd_handle)
+
         elif npsId == "CLOUD"
             r.addGravity = 250.0
+            play_sound(cloud_music, 0.9)
 
         eddExplosion(touchData.pos, 25, touchData.color, b.hasFinished)
         erase(npsList, touchData.idx)
@@ -463,6 +481,13 @@ def act(dt: float)
     if get_mouse_button(MB_LEFT)
         base.hasStarted = true
         base.button = 1.0
+
+    if get_mouse_button_down(MB_LEFT)
+        snd_handle = play_sound_loop(bubbles_music, 0.6)
+        base.buttonDown = true
+
+    if get_mouse_button_up(MB_LEFT)
+        stop_sound(snd_handle)
 
     if !base.hasStarted
         return
